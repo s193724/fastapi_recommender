@@ -1,0 +1,8 @@
+Requirement	Status
+1. Recommender System as Web API	✅ Met
+2. Non-personalized recommendations for unauthenticated users	🟡 Partial
+3. User registration via form	🟡 Partial
+4. Authentication and Authorization	🟡 Partial
+5. Hybrid recommendations (Collaborative + Content-based, etc.)	✅ Met
+6. Rating mechanism	❌ Not met
+7. Update user/item profiles using ratings	❌ Not met

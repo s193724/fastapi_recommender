@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Register User</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      background-color: #f8f9fa;
+    }
+    section {
+      margin-top: 30px;
+    }
+    .error {
+      color: red;
+    }
+    .success {
+      color: green;
+    }
+    input, select, button {
+      padding: 10px;
+      margin-bottom: 10px;
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .rec-card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      background-color: #f9f9f9;
+      transition: background-color 0.3s ease;
+    }
+    .rec-card:hover {
+      background-color: #f0f8ff;
+    }
+  </style>
+</head>
+<body>
+  <h1>Register</h1>
+  <form id="registerForm">
+    <input type="text" id="userId" placeholder="User ID" required />
+    <input type="text" id="username" placeholder="Username" required />
+    <input type="password" id="password" placeholder="Password" required />
+    
+    <label for="mode">Choose Mode:</label>
+    <select id="mode" required>
+      <option value="user">User-based</option>
+      <option value="hotel">Hotel-based</option>
+    </select>
+
+    <div id="userFields">
+      <input type="text" id="locationUser" placeholder="Location" />
+      <input type="number" id="numCities" placeholder="Number of Cities" min="0" />
+      <input type="number" id="numReviews" placeholder="Number of Reviews" min="0" />
+      <input type="number" id="numHelpfulVotes" placeholder="Helpful Votes" min="0" />
+    </div>
+
+    <div id="hotelFields" style="display:none;">
+      <input type="number" id="service" placeholder="Service" min="0" max="5" />
+      <input type="number" id="cleanliness" placeholder="Cleanliness" min="0" max="5" />
+      <input type="number" id="overall" placeholder="Overall" min="0" max="5" />
+      <input type="number" id="value" placeholder="Value" min="0" max="5" />
+      <input type="number" id="location_pref_score" placeholder="Location Pref Score" min="0" max="5" />
+      <input type="number" id="sleep_quality" placeholder="Sleep Quality" min="0" max="5" />
+      <input type="number" id="rooms" placeholder="Rooms" min="0" max="5" />
+      <input type="number" id="hotel_class" placeholder="Hotel Class" min="0" max="5" />
+      <input type="text" id="location_region" placeholder="Region" />
+    </div>
+
+    <button type="submit">Register</button>
+  </form>
+  <p id="message"></p>
+
+  <script>
+    document.getElementById("mode").addEventListener("change", function () {
+      const userFields = document.getElementById("userFields");
+      const hotelFields = document.getElementById("hotelFields");
+      if (this.value === "user") {
+        userFields.style.display = "block";
+        hotelFields.style.display = "none";
+      } else {
+        userFields.style.display = "none";
+        hotelFields.style.display = "block";
+      }
+    });
+
+    document.getElementById("registerForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const user_id = document.getElementById("userId").value;
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      const mode = document.getElementById("mode").value;
+
+      let payload = { user_id, username, password, mode };
+
+      if (mode === "user") {
+        payload.user_mode_data = {
+          location_user: document.getElementById("locationUser").value,
+          num_cities: parseInt(document.getElementById("numCities").value),
+          num_reviews_profile: parseInt(document.getElementById("numReviews").value),
+          num_helpful_votes_user: parseInt(document.getElementById("numHelpfulVotes").value)
+        };
+      } else {
+        payload.hotel_mode_data = {
+          service: parseFloat(document.getElementById("service").value),
+          cleanliness: parseFloat(document.getElementById("cleanliness").value),
+          overall: parseFloat(document.getElementById("overall").value),
+          value: parseFloat(document.getElementById("value").value),
+          location_pref_score: parseFloat(document.getElementById("location_pref_score").value),
+          sleep_quality: parseFloat(document.getElementById("sleep_quality").value),
+          rooms: parseFloat(document.getElementById("rooms").value),
+          hotel_class: parseFloat(document.getElementById("hotel_class").value),
+          location_region: document.getElementById("location_region").value
+        };
+      }
+
+      const res = await fetch("http://127.0.0.1:8000/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const messageEl = document.getElementById("message");
+      const data = await res.json();
+
+      if (!res.ok) {
+        messageEl.textContent = data.detail || "Registration failed";
+        messageEl.className = "error";
+      } else {
+        localStorage.setItem("user_id", user_id);
+        window.location.href = "/login_page";
+      }
+    });
+  </script>
+
+  <section>
+    <button id="getAdditionalRecs">Get Non-Personalized Recommendations</button>
+    <div id="additionalRecs"></div>
+
+    <script>
+      document.getElementById("getAdditionalRecs").addEventListener("click", async () => {
+        const res = await fetch("http://127.0.0.1:8000/recommendations/non_personalized?top_k=5");
+        const recs = await res.json();
+
+        const container = document.getElementById("additionalRecs");
+        if (!res.ok) {
+          container.textContent = "Failed to fetch recommendations.";
+          container.className = "error";
+          return;
+        }
+
+        if (recs.length === 0) {
+          container.textContent = "No recommendations found.";
+          return;
+        }
+
+        container.innerHTML = "<h2 style='margin-bottom: 15px;'>Top Hotel Picks</h2>" +
+          recs.map(r => `
+            <div class="rec-card">
+              <strong>🏨 Hotel ID:</strong> ${r.hotel_id}<br />
+              <strong>⭐ Score:</strong> ${r.score?.toFixed(2)}
+            </div>
+          `).join('');
+      });
+    </script>
+  </section>
+</body>
+</html>
