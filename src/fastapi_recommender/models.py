@@ -27,6 +27,7 @@ class UserModeProfile(Base):
 class HotelModeProfile(Base):
     __tablename__ = "hotel_mode_profiles"
     user_id = Column(String, ForeignKey("users.user_id"), primary_key=True)
+    offering_id = Column(Float)  # Add this line
     service = Column(Float)
     cleanliness = Column(Float)
     overall = Column(Float)

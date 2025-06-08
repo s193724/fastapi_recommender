@@ -60,7 +60,7 @@
     <label for="mode">Choose Mode:</label>
     <select id="mode" required>
       <option value="user">User-based</option>
-      <option value="hotel">Hotel-based</option>
+      <option value="hotel">Give us a review of the hotel you have recently visited to receive recommendations</option>
     </select>
 
     <div id="userFields">
@@ -71,6 +71,7 @@
     </div>
 
     <div id="hotelFields" style="display:none;">
+      <input type="number" id="hotel_id" placeholder="Hotel ID" />
       <input type="number" id="service" placeholder="Service" min="0" max="5" />
       <input type="number" id="cleanliness" placeholder="Cleanliness" min="0" max="5" />
       <input type="number" id="overall" placeholder="Overall" min="0" max="5" />
@@ -118,6 +119,7 @@
         };
       } else {
         payload.hotel_mode_data = {
+          offering_id: parseFloat(document.getElementById("hotel_id").value),
           service: parseFloat(document.getElementById("service").value),
           cleanliness: parseFloat(document.getElementById("cleanliness").value),
           overall: parseFloat(document.getElementById("overall").value),

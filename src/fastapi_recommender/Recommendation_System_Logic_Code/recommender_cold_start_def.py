@@ -26,6 +26,70 @@ with open(f'{base_dir}/hotel_idx_to_id.json') as f:
 scaler = joblib.load(f'{base_dir}/scaler.pkl')
 vectorizer_location = joblib.load(f'{base_dir}/vectorizer_location.pkl')
 
+def add_cold_user(
+    new_user_id: str,
+    cold_user_vector,           # csr_matrix shape (1, feature_dim)
+    hotel_features_sparse,      # csr_matrix shape (num_hotels, feature_dim)
+    user_item_matrix_path: str = "user_hotel_matrix.npz",
+    user_features_matrix_path: str = "user_features.npz",
+    user_id_to_idx_path: str = "user_id_to_idx.json",
+    idx_to_user_id_path: str = "idx_to_user_id.json",
+):
+    """
+    Adds a cold start user to the user-item and user features matrices,
+    updates user ID mappings, saves the updated data, and returns them.
+
+    Returns:
+    - user_item_matrix_updated: csr_matrix
+    - user_features_sparse_updated: csr_matrix
+    - user_id_to_idx: dict
+    - idx_to_user_id: dict
+    """
+
+    # Load existing data
+    user_item_matrix = load_npz(user_item_matrix_path)
+    user_features_sparse = load_npz(user_features_matrix_path)
+
+    with open(user_id_to_idx_path, "r") as f:
+        user_id_to_idx = json.load(f)
+
+    with open(idx_to_user_id_path, "r") as f:
+        idx_to_user_id = {int(k): v for k, v in json.load(f).items()}
+
+    # Check if user already exists
+    if new_user_id in user_id_to_idx:
+        raise ValueError(f"User ID '{new_user_id}' already exists.")
+
+    # Compute similarity of cold user vector to all hotels
+    similarities = cosine_similarity(cold_user_vector, hotel_features_sparse).flatten()
+
+    # Convert similarities to sparse row vector (1 x num_hotels)
+    cold_user_interactions = csr_matrix(similarities)
+
+    # Append cold user interaction row to user-item matrix
+    user_item_matrix_updated = vstack([user_item_matrix, cold_user_interactions])
+
+    # Append cold user vector row to user features matrix
+    user_features_sparse_updated = vstack([user_features_sparse, cold_user_vector])
+
+    # Update mappings with new user index
+    new_idx = user_item_matrix.shape[0]  # next index (0-based)
+    user_id_to_idx[new_user_id] = new_idx
+    idx_to_user_id[new_idx] = new_user_id
+
+    # Save updated matrices and mappings
+    save_npz(user_item_matrix_path, user_item_matrix_updated)
+    save_npz(user_features_matrix_path, user_features_sparse_updated)
+
+    with open(user_id_to_idx_path, "w") as f:
+        json.dump(user_id_to_idx, f)
+
+    with open(idx_to_user_id_path, "w") as f:
+        json.dump({str(k): v for k, v in idx_to_user_id.items()}, f)
+
+    print(f"Added cold user '{new_user_id}' as index {new_idx}.")
+
+    return user_item_matrix_updated, user_features_sparse_updated, user_id_to_idx, idx_to_user_id
 
 def cold_start_recommendation(user_id, top_k=10):
     global user_features_sparse
@@ -99,6 +163,7 @@ def apply_city_penalty(recommendations):
     adjusted.sort(key=lambda x: x[1], reverse=True)
     return adjusted[:10]
 
+
 def cold_start_recommendation_combined(
     user_id: str,
     mode: str = "user",
@@ -109,6 +174,7 @@ def cold_start_recommendation_combined(
     reviews: float = None,
     helpful: float = None,
     # HOTEL mode fields
+    offering_id: float = None,
     service: float = None,
     cleanliness: float = None,
     overall: float = None,
@@ -154,6 +220,7 @@ def cold_start_recommendation_combined(
             return top_hotels
 
         elif mode == "hotel":
+            print(offering_id)
             if None in (service, cleanliness, overall, value, location_pref_score,
                         sleep_quality, rooms, hotel_class, location_region):
                 raise ValueError("Missing hotel preference fields for hotel-mode cold start.")

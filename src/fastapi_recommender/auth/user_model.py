@@ -20,6 +20,7 @@ class UserModeData(BaseModel):
 
 # Extra data required if mode == "hotel"
 class HotelModeData(BaseModel):
+    offering_id: int
     service: int
     cleanliness: int
     overall: int

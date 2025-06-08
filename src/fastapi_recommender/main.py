@@ -127,6 +127,7 @@ def register(user: UserRegister, db: Session = Depends(get_db)):
 
         hotel_profile = HotelModeProfile(
             user_id=user.user_id,
+            offering_id=user.hotel_mode_data.offering_id,  # Add this line
             service=user.hotel_mode_data.service,
             cleanliness=user.hotel_mode_data.cleanliness,
             overall=user.hotel_mode_data.overall,
@@ -136,7 +137,8 @@ def register(user: UserRegister, db: Session = Depends(get_db)):
             rooms=user.hotel_mode_data.rooms,
             hotel_class=user.hotel_mode_data.hotel_class,
             location_region=user.hotel_mode_data.location_region,
-        )
+)
+
         db.add(hotel_profile)
 
     else:
@@ -277,6 +279,7 @@ def get_recommendations(
                 recommendations = cold_start_recommendation_combined(
                     user_id=user.user_id,
                     mode="hotel",
+                    offering_id=profile.offering_id,
                     service=profile.service,
                     cleanliness=profile.cleanliness,
                     overall=profile.overall,
