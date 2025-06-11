@@ -11,14 +11,14 @@ import json
 import os
 import csv
 from scipy.sparse import load_npz
-from typing import List
 import uvicorn
+import pandas as pd
 
 # Importació de models i recomanacions
 from src.fastapi_recommender.auth.user_model import UserRegister, LoginRequest, Recommendation
 from src.fastapi_recommender.auth.auth_utils import create_access_token, get_current_user
 from src.fastapi_recommender.models import UserModeProfile, HotelModeProfile, User as UserModel
-from src.fastapi_recommender.Recommendation_System_Logic_Code.recommender_v2 import (
+from src.fastapi_recommender.Recommendation_System_Logic_Code.recommender_cold_start_def import (
     cold_start_recommendation_combined, apply_city_penalty, get_non_personalized_recommendations
 )
 from src.fastapi_recommender.Recommendation_System_Logic_Code.recommender_v3 import (
@@ -32,6 +32,17 @@ from src.fastapi_recommender.Recommendation_System_Logic_Code.recommender_v3 imp
 
 #/Users/filiporlikowski/Documents/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic&Code/recommender_v2.py
 #app = FastAPI()
+
+# Globals per les dades
+user_item_matrix = None
+user_similarity = None
+hotel_similarity = None
+user_id_to_idx = None
+idx_to_user_id = None
+hotel_id_to_idx = None
+idx_to_hotel_id = None
+hotel_meta_dict = None 
+hotel_meta_df = None  
 
 def get_db():
     db = SessionLocal()
@@ -71,17 +82,17 @@ def load_data():
     """
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # El que abans tenies a load_data()
     global user_item_matrix, user_similarity, hotel_similarity
     global user_id_to_idx, idx_to_user_id, hotel_id_to_idx, idx_to_hotel_id
+    global hotel_meta_df, hotel_meta_dict
 
     base_dir = '/Users/oliviapc/Documents/GitHub/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
-    
+
     print("Loading matrices...")
     user_item_matrix = load_npz(f'{base_dir}/user_hotel_matrix.npz')
     user_similarity = load_npz(f'{base_dir}/user_similarity_collab.npz')
     hotel_similarity = load_npz(f'{base_dir}/hotel_similarity_matrix.npz')
-    
+
     print("Loading mappings...")
     with open(f'{base_dir}/user_id_to_idx.json') as f:
         user_id_to_idx = json.load(f)
@@ -92,8 +103,16 @@ async def lifespan(app: FastAPI):
     with open(f'{base_dir}/hotel_idx_to_id.json') as f:
         idx_to_hotel_id = {int(k): v for k, v in json.load(f).items()}
 
+    
+    hotel_meta_df = pd.read_csv(f'{base_dir}/hotel_df.csv')
+    hotel_meta_dict = hotel_meta_df.set_index("offering_id").to_dict(orient="index")
+    hotel_meta_df.set_index("offering_id", inplace=True)
+    
+    print(hotel_meta_df.columns)
+
+
     print("All data loaded.")
-    yield  # continue running app
+    yield
 
 app = FastAPI(lifespan=lifespan)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -184,9 +203,6 @@ def register(user: UserRegister, db: Session = Depends(get_db)):
 
 
 
-
-
-
 # Dependency to get DB session
 
 @app.post("/login")
@@ -219,6 +235,37 @@ app.add_middleware(
 )
 
 # Dependency to get DB session
+def enrich_recommendations(recommendations, top_k=10):
+    enriched = []
+
+    # Traduïm els índexs interns a offering_id
+    recommendations_with_ids = [
+        (idx_to_hotel_id.get(idx, idx), score) for idx, score in recommendations[:top_k]
+    ]
+
+    for hotel_id, score in recommendations_with_ids:
+        hotel_id_str = str(hotel_id)
+        if hotel_id_str in hotel_meta_df.index:
+            meta = hotel_meta_df.loc[hotel_id_str]
+            enriched.append({
+                "hotel_id": hotel_id_str,
+                "score": round(score, 2),
+                "hotel_name": meta.get("name", "N/A"),
+                "hotel_class": meta.get("hotel_class", None),
+                "location": meta.get("locality", "N/A"),
+            })
+        else:
+            enriched.append({
+                "hotel_id": hotel_id_str,
+                "score": round(score, 2),
+                "hotel_name": "sense metadades",
+                "hotel_class": None,
+                "location": None,
+            })
+    print("Raw recommendations (indices):", recommendations[:top_k])
+    print("Mapped recommendations (offering_ids):", recommendations_with_ids)
+
+    return enriched
 
 
 # ---------------- USER ROUTES ---------------- #
@@ -268,27 +315,24 @@ app.add_middleware(
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
+# ───── Endpoint recomanacions personalitzades ──────────────────────────────
 @app.get("/recommendations/")
 def get_recommendations(
-    user_id: str = Depends(get_current_user),  # get user ID from token
-    db: Session = Depends(get_db)               # get DB session
+    user_id: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     print(f"DEBUG: In /recommendations/ endpoint, user_id={user_id}")
     try:
         if user_id in user_id_to_idx:
-            # Existing user: hybrid recommendation
             recommendations = hybrid_recommend(user_id, alpha=0.7, top_k=10)
         else:
-            # Cold start user
-            user = db.query(User).filter(User.user_id == user_id).first()
+            user = db.query(UserModel).filter(UserModel.user_id == user_id).first()
             if not user:
                 raise HTTPException(status_code=400, detail="User not found. Please register first.")
-
             if user.mode == "user":
                 profile = db.query(UserModeProfile).filter(UserModeProfile.user_id == user.user_id).first()
                 if not profile:
                     raise HTTPException(status_code=400, detail="User profile not found.")
-
                 recommendations = cold_start_recommendation_combined(
                     user_id=user.user_id,
                     mode="user",
@@ -298,12 +342,10 @@ def get_recommendations(
                     helpful=profile.num_helpful_votes_user,
                     top_k=10
                 )
-
             elif user.mode == "hotel":
                 profile = db.query(HotelModeProfile).filter(HotelModeProfile.user_id == user.user_id).first()
                 if not profile:
                     raise HTTPException(status_code=400, detail="Hotel profile not found.")
-
                 recommendations = cold_start_recommendation_combined(
                     user_id=user.user_id,
                     mode="hotel",
@@ -323,23 +365,22 @@ def get_recommendations(
                 raise HTTPException(status_code=400, detail="User mode invalid.")
 
         final_recommendations = apply_city_penalty(recommendations)
+        enriched = enrich_recommendations(final_recommendations)
 
         return {
             "user_id": user_id,
-            "recommendations": [
-                {"hotel_id": hotel_id, "score": round(score, 4)}
-                for hotel_id, score in final_recommendations
-            ]
+            "recommendations": enriched
         }
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
-@app.get("/recommendations/non_personalized", response_model=List[Recommendation])
+# ───── Endpoint recomanacions no personalitzades ────────────────────────────
+@app.get("/recommendations/non_personalized", response_model=list[Recommendation])
 def non_personalized_recommendations(top_k: int = 10):
     recommendations = get_non_personalized_recommendations(top_k=top_k)
     adjusted_recommendations = apply_city_penalty(recommendations)
-    return [{"hotel_id": str(r[0]), "score": r[1]} for r in adjusted_recommendations]
+    return enrich_recommendations(adjusted_recommendations, top_k=top_k)
+
 
 
 #mounting the static files directory
@@ -350,13 +391,13 @@ from fastapi.responses import FileResponse, RedirectResponse
 # Mount the folder containing your frontend files
 app.mount("/static", StaticFiles(directory="/Users/oliviapc/Documents/GitHub/fastapi_recommender/frontend"), name="static")
 
-@app.get("/", include_in_schema=False)
-def root():
-    # Opció 1: Serveix directament la pàgina register.html
-    #return FileResponse("/Users/oliviapc/Documents/GitHub/fastapi_recommender/frontend/register.html")
-
-    # Opció 2: Redirigeix a la ruta /register_page (si vols que la URL canviï)
+@app.get("/")
+async def root():
     return RedirectResponse(url="/login_page")
+
+@app.get("/favicon.ico")
+async def favicon():
+    return FileResponse("/favicon.ico")
 
 # Route to serve the register page
 @app.get("/register_page", response_class=FileResponse)

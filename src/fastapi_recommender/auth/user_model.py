@@ -45,3 +45,6 @@ class LoginRequest(BaseModel):
 class Recommendation(BaseModel):
     hotel_id: str
     score: float
+    hotel_name: Optional[str] = None
+    location: Optional[str] = None
+    hotel_class: Optional[int] = None
