@@ -1,4 +1,7 @@
-from src.fastapi_recommender.Recommendation_System_Logic_Code.recommender_cold_start_def import cold_start_recommendation_combined
+from src.fastapi_recommender.Recommendation_System_Logic_Code.recommender_cold_start_def import cold_start_recommendation_combined, print_recommendations_with_features
+import pandas as pd
+
+#hotel_meta_df = pd.read_csv('/Users/oliviapc/Documents/GitHub/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code/hotel_df.csv')
 
 # Test 1: Amb diversos camps
 print("▶ Test 1: Amb location + helpful + reviews")
@@ -10,6 +13,7 @@ result_1 = cold_start_recommendation_combined(
     location="New York City"
 )
 print(result_1)
+# result = print_recommendations_with_features(result_1, hotel_meta_df)
 
 # Test 2: Només amb location + cities
 print("\n▶ Test 2: Amb location + cities")
@@ -47,3 +51,4 @@ result_4 = cold_start_recommendation_combined(
     location_region="California"
 )
 print(result_4)
+
