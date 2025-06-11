@@ -78,10 +78,11 @@ def hybrid_recommend(user_id, alpha=0.7, top_k=10):
     return list(zip(recommended_hotel_ids, recommended_scores))
 
 
-# --- Example usage ---
+"""# --- Example usage ---
 user_id = "3199EEEDB7088BA85AAE3F7DB9BC224"  # replace with real user
 recommendations = hybrid_recommend(user_id, alpha=0.7, top_k=10)
 recommendations = apply_city_penalty(recommendations)
 print("Top recommendations:")
 for hotel_id, score in recommendations:
     print(f"Hotel {hotel_id} — Score: {score:.4f}")
+"""

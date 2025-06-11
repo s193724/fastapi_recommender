@@ -3,33 +3,35 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from src.fastapi_recommender.models import SessionLocal, User
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from passlib.context import CryptContext
+from contextlib import asynccontextmanager
 import json
-import csv
 import os
+import csv
 from scipy.sparse import load_npz
-#from src.fastapi_recommender.auth.auth_utils import register_user
-from src.fastapi_recommender.auth.user_model import UserRegister, LoginRequest, UserModeData, HotelModeData, UserRegisterBase, Recommendation
+from typing import List
+import uvicorn
+
+# Importació de models i recomanacions
+from src.fastapi_recommender.auth.user_model import UserRegister, LoginRequest, Recommendation
 from src.fastapi_recommender.auth.auth_utils import create_access_token, get_current_user
 from src.fastapi_recommender.models import UserModeProfile, HotelModeProfile, User as UserModel
-from typing import Optional, List
-from fastapi import Query
-from pydantic import BaseModel
-from passlib.context import CryptContext
-
 from src.fastapi_recommender.Recommendation_System_Logic_Code.recommender_v2 import (
-    hybrid_recommend,
-    cold_start_recommendation_combined,
-    apply_city_penalty,
-    get_non_personalized_recommendations
-    
+    cold_start_recommendation_combined, apply_city_penalty, get_non_personalized_recommendations
+)
+from src.fastapi_recommender.Recommendation_System_Logic_Code.recommender_v3 import (
+    hybrid_recommend
 )
 # from src.fastapi_recommender.Recommendation_System_Logic_Code.recommender_cold_start_def import (
 #     cold_start_recommendation_combined,
 #     apply_city_penalty
 # )
 
+
 #/Users/filiporlikowski/Documents/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic&Code/recommender_v2.py
-app = FastAPI()
+#app = FastAPI()
 
 def get_db():
     db = SessionLocal()
@@ -38,7 +40,7 @@ def get_db():
     finally:
         db.close()
 
-@app.on_event("startup")
+"""@app.on_event("startup")
 def load_data():
     global user_item_matrix, user_similarity, hotel_similarity
     global user_id_to_idx, idx_to_user_id, hotel_id_to_idx, idx_to_hotel_id
@@ -66,10 +68,34 @@ def load_data():
         idx_to_hotel_id = {int(k): v for k, v in json.load(f).items()}
     
     print("All data loaded.")
+    """
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # El que abans tenies a load_data()
+    global user_item_matrix, user_similarity, hotel_similarity
+    global user_id_to_idx, idx_to_user_id, hotel_id_to_idx, idx_to_hotel_id
+
+    base_dir = '/Users/oliviapc/Documents/GitHub/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
     
+    print("Loading matrices...")
+    user_item_matrix = load_npz(f'{base_dir}/user_hotel_matrix.npz')
+    user_similarity = load_npz(f'{base_dir}/user_similarity_collab.npz')
+    hotel_similarity = load_npz(f'{base_dir}/hotel_similarity_matrix.npz')
+    
+    print("Loading mappings...")
+    with open(f'{base_dir}/user_id_to_idx.json') as f:
+        user_id_to_idx = json.load(f)
+    with open(f'{base_dir}/idx_to_user_id.json') as f:
+        idx_to_user_id = {int(k): v for k, v in json.load(f).items()}
+    with open(f'{base_dir}/hotel_id_to_idx.json') as f:
+        hotel_id_to_idx = json.load(f)
+    with open(f'{base_dir}/hotel_idx_to_id.json') as f:
+        idx_to_hotel_id = {int(k): v for k, v in json.load(f).items()}
 
+    print("All data loaded.")
+    yield  # continue running app
 
-
+app = FastAPI(lifespan=lifespan)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 #GENERATED_PASSWORDS_PATH = "/Users/filiporlikowski/Documents/fastapi_recommender/generated_passwords.csv"
@@ -319,10 +345,18 @@ def non_personalized_recommendations(top_k: int = 10):
 #mounting the static files directory
 
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 
 # Mount the folder containing your frontend files
-#app.mount("/static", StaticFiles(directory="/Users/filiporlikowski/Documents/fastapi_recommender/frontend"), name="static")
+app.mount("/static", StaticFiles(directory="/Users/oliviapc/Documents/GitHub/fastapi_recommender/frontend"), name="static")
+
+@app.get("/", include_in_schema=False)
+def root():
+    # Opció 1: Serveix directament la pàgina register.html
+    #return FileResponse("/Users/oliviapc/Documents/GitHub/fastapi_recommender/frontend/register.html")
+
+    # Opció 2: Redirigeix a la ruta /register_page (si vols que la URL canviï)
+    return RedirectResponse(url="/register_page")
 
 # Route to serve the register page
 @app.get("/register_page", response_class=FileResponse)

@@ -2,185 +2,358 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Register User</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProRegister – Create Account</title>
+
+  <!-- Google Fonts & Material Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-      background-color: #f8f9fa;
+    /* ===== Reset & base =====*/
+    *,*::before,*::after{box-sizing:border-box}body{margin:0;font-family:'Inter',sans-serif;background:#0a0f2a;color:#e0e6f1;min-height:100vh;display:flex;flex-direction:column}
+
+    /* ===== Color variables =====*/
+    :root{
+      --primary:#2e80ff;
+      --primary-light:#5596ff;
+      --primary-dark:#1a4fcc;
+      --bg-panel-left:#121c4b;
+      --bg-panel-right:#181f38;
+      --input-bg:rgba(255,255,255,0.07);
+      --input-border:rgba(255,255,255,0.12);
+      --input-placeholder:rgba(255,255,255,0.55);
+      --input-focus-border:#5596ff;
+      --btn-bg:var(--primary);
+      --btn-hover-bg:var(--primary-light);
+      --text-muted:rgba(224,230,241,0.7);
+      --shadow-glass:rgba(40,73,148,0.5)
     }
-    section {
-      margin-top: 30px;
-    }
-    .error {
-      color: red;
-    }
-    .success {
-      color: green;
-    }
-    input, select, button {
-      padding: 10px;
-      margin-bottom: 10px;
-      width: 100%;
-      box-sizing: border-box;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-    button {
-      background-color: #007bff;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    .rec-card {
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 15px;
-      margin-bottom: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-      background-color: #f9f9f9;
-      transition: background-color 0.3s ease;
-    }
-    .rec-card:hover {
-      background-color: #f0f8ff;
+
+    /* ===== Layout =====*/
+    header,footer{background:#121c4b;color:#fff;padding:1rem 2rem;text-align:center}
+    header{position:sticky;top:0;z-index:99;box-shadow:0 2px 6px rgba(0,0,0,.6)}
+    nav{max-width:1080px;margin:auto;display:flex;justify-content:space-between;align-items:center}
+    nav .logo{font-weight:700;font-size:1.5rem;color:var(--primary-light)}
+    nav .nav-links{display:flex;gap:2rem}
+    nav .nav-links a{color:#fff;text-decoration:none;font-weight:600;font-size:1rem;transition:color .3s}
+    nav .nav-links a:hover,nav .nav-links a:focus{color:var(--primary-light)}
+    .mobile-toggle{display:none;background:none;border:none;color:#fff;font-size:1.8rem;cursor:pointer}
+
+    /* ===== Register container =====*/
+    .register-container{max-width:1080px;margin:3rem auto;display:grid;grid-template-columns:1fr 1fr;background:#0f163d;border-radius:16px;overflow:hidden;box-shadow:0 16px 32px var(--shadow-glass);min-height:520px}
+    .welcome-panel{background:var(--bg-panel-left);padding:48px 40px;display:flex;flex-direction:column;justify-content:center;position:relative}
+    .welcome-panel h1{font-weight:700;font-size:2.8rem;line-height:1.2;margin:0 0 1rem;letter-spacing:-.03em}
+    .welcome-panel p{font-size:1rem;color:var(--text-muted);max-width:320px;margin:0}
+    .welcome-bg-img{position:absolute;opacity:.1;top:16px;left:16px;width:240px;height:240px;background-image:url('https://placehold.co/240x240/121c4b/2e80ff?text=+');background-size:cover;border-radius:50%;mix-blend-mode:screen}
+
+    .form-panel{background:var(--bg-panel-right);padding:48px 40px;display:flex;flex-direction:column;justify-content:center}
+    .form-panel h2{font-weight:700;font-size:1.8rem;color:#fff;margin:0 0 32px}
+
+    /* ===== Inputs =====*/
+    form{display:flex;flex-direction:column;gap:22px}
+    .input-group{position:relative;display:flex;align-items:center}
+    .input-icon{position:absolute;left:12px;color:var(--input-placeholder);font-size:20px;pointer-events:none}
+    input,select{width:100%;padding:14px 16px 14px 40px;background:var(--input-bg);border:1.5px solid var(--input-border);border-radius:10px;color:#fff;font-size:1rem}
+    input::placeholder,select{color:var(--input-placeholder)}
+    input:focus,select:focus{outline:none;border-color:var(--input-focus-border);box-shadow:0 0 8px var(--input-focus-border);background:rgba(255,255,255,.12)}
+    select{appearance:none;-webkit-appearance:none}
+    select::-ms-expand{display:none}
+
+    /* password toggle */
+    .password-toggle-wrapper{position:relative}
+    .toggle-password{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--input-placeholder);cursor:pointer;font-size:18px;padding:2px 6px;border-radius:6px}
+    .toggle-password:hover,.toggle-password:focus{color:var(--btn-hover-bg)}
+
+    /* checkbox */
+    .checkbox-group{display:flex;align-items:center;gap:10px;font-size:.9rem;color:var(--text-muted)}
+    .checkbox-group input{width:18px;height:18px;cursor:pointer}
+    .checkbox-label{user-select:none;cursor:pointer}
+
+    /* buttons */
+    button{padding:14px 0;font-weight:700;font-size:1rem;border-radius:12px;border:none;cursor:pointer;transition:background-color .3s}
+    .btn-primary{background:var(--btn-bg);color:#fff;box-shadow:0 6px 12px rgba(46,128,255,.48)}
+    .btn-primary:hover,.btn-primary:focus{background:var(--btn-hover-bg);box-shadow:0 10px 20px rgba(85,150,255,.68)}
+    .btn-secondary{background:transparent;color:var(--btn-bg);border:2px solid var(--btn-bg)}
+    .btn-secondary:hover,.btn-secondary:focus{background:var(--btn-bg);color:#fff;box-shadow:0 6px 12px rgba(46,128,255,.48)}
+
+    /* recommendation cards */
+    .rec-card{border:1px solid #32406a;border-radius:8px;padding:15px;margin-bottom:12px;background:rgba(255,255,255,.03)}
+
+    /* ===== Responsive =====*/
+    @media(max-width:767px){
+      nav .nav-links{display:none}.mobile-toggle{display:block}
+      .register-container{grid-template-columns:1fr;margin:2rem 1rem}
+      .welcome-panel{padding:2.5rem 2rem;text-align:center}.welcome-bg-img{display:none}
+      .form-panel{padding:2.5rem 2rem;border-radius:0 0 16px 16px}.form-panel h2{text-align:center;margin-bottom:24px;font-size:1.5rem}
     }
   </style>
 </head>
 <body>
-  <h1>Register</h1>
-  <form id="registerForm">
-    <input type="text" id="userId" placeholder="User ID" required />
-    <input type="text" id="username" placeholder="Username" required />
-    <input type="password" id="password" placeholder="Password" required />
-    
-    <label for="mode">Choose Mode:</label>
-    <select id="mode" required>
-      <option value="user">User-based</option>
-      <option value="hotel">Give us a review of the hotel you have recently visited to receive recommendations</option>
-    </select>
+  <!-------- HEADER -------->
+  <header>
+    <nav>
+      <div class="logo">TOPhotels</div>
+      <button class="mobile-toggle" aria-label="Toggle menu" aria-expanded="false">&#9776;</button>
+      <div class="nav-links" role="navigation">
+        <a href="#home">Home</a>
+        <a href="#features">Features</a>
+        <a href="#contact">Contact</a>
+      </div>
+    </nav>
+  </header>
 
-    <div id="userFields">
-      <input type="text" id="locationUser" placeholder="Location" />
-      <input type="number" id="numCities" placeholder="Number of Cities" min="0" />
-      <input type="number" id="numReviews" placeholder="Number of Reviews" min="0" />
-      <input type="number" id="numHelpfulVotes" placeholder="Helpful Votes" min="0" />
+  <!-------- MAIN -------->
+  <main>
+    <div class="register-container">
+      <!-- Left panel -->
+      <section class="welcome-panel" aria-hidden="true">
+        <div class="welcome-bg-img" aria-hidden="true"></div>
+        <h1>Welcome back...</h1>
+        <p>Create your account.<br/>It only takes a few minutes –<br/>and it’s free!</p>
+      </section>
+
+      <!-- Right panel -->
+      <section class="form-panel" role="form">
+        <h2>Register your account</h2>
+
+        <form id="registerForm" novalidate>
+          <!-- user id -->
+          <div class="input-group">
+            <span class="material-icons input-icon">badge</span>
+            <input type="text" id="userId" placeholder="User ID" required aria-required="true" autocomplete="off">
+          </div>
+          <!-- username -->
+          <div class="input-group">
+            <span class="material-icons input-icon">person</span>
+            <input type="text" id="username" placeholder="Username" required aria-required="true" autocomplete="username">
+          </div>
+          <!-- password -->
+          <div class="input-group password-toggle-wrapper">
+            <span class="material-icons input-icon">lock</span>
+            <input type="password" id="password" placeholder="Password" required aria-required="true" autocomplete="new-password">
+            <button type="button" class="toggle-password" aria-label="Show password" aria-pressed="false">
+              <span class="material-icons">visibility</span>
+            </button>
+          </div>
+          <!-- mode -->
+          <div class="input-group">
+            <span class="material-icons input-icon">menu</span>
+            <select id="mode" required aria-required="true">
+              <option value="" disabled selected hidden>Choose mode</option>
+              <option value="user">User-based</option>
+              <option value="hotel">Hotel review</option>
+            </select>
+          </div>
+
+          <!---- USER FIELDS ---->
+          <div id="userFields">
+            <div class="input-group">
+              <span class="material-icons input-icon">location_on</span>
+              <input type="text" id="locationUser" placeholder="Location">
+            </div>
+            <div class="input-group">
+              <span class="material-icons input-icon">location_city</span>
+              <input type="number" id="numCities" placeholder="Number of cities" min="0">
+            </div>
+            <div class="input-group">
+              <span class="material-icons input-icon">rate_review</span>
+              <input type="number" id="numReviews" placeholder="Number of reviews" min="0">
+            </div>
+            <div class="input-group">
+              <span class="material-icons input-icon">thumb_up</span>
+              <input type="number" id="numHelpfulVotes" placeholder="Helpful votes" min="0">
+            </div>
+          </div>
+
+          <!---- HOTEL FIELDS ---->
+          <div id="hotelFields" style="display:none">
+            <div class="input-group">
+              <span class="material-icons input-icon">location_city</span>
+              <input type="number" id="hotel_id" placeholder="Hotel ID" min="0">
+            </div>
+            <div class="input-group">
+              <span class="material-icons input-icon">room_service</span>
+              <input type="number" id="service" placeholder="Service (0-5)" min="0" max="5">
+            </div>
+            <div class="input-group">
+              <span class="material-icons input-icon">cleaning_services</span>
+              <input type="number" id="cleanliness" placeholder="Cleanliness (0-5)" min="0" max="5">
+            </div>
+            <div class="input-group">
+              <span class="material-icons input-icon">star</span>
+              <input type="number" id="overall" placeholder="Overall (0-5)" min="0" max="5">
+            </div>
+            <div class="input-group">
+              <span class="material-icons input-icon">attach_money</span>
+              <input type="number" id="value" placeholder="Value (0-5)" min="0" max="5">
+            </div>
+            <div class="input-group">
+              <span class="material-icons input-icon">public</span>
+              <input type="number" id="location_pref_score" placeholder="Location score (0-5)" min="0" max="5">
+            </div>
+            <div class="input-group">
+              <span class="material-icons input-icon">bed</span>
+              <input type="number" id="sleep_quality" placeholder="Sleep quality (0-5)" min="0" max="5">
+            </div>
+            <div class="input-group">
+              <span class="material-icons input-icon">meeting_room</span>
+              <input type="number" id="rooms" placeholder="Rooms (0-5)" min="0" max="5">
+            </div>
+            <div class="input-group">
+              <span class="material-icons input-icon">grading</span>
+              <input type="number" id="hotel_class" placeholder="Hotel class (0-5)" min="0" max="5">
+            </div>
+            <div class="input-group">
+              <span class="material-icons input-icon">map</span>
+              <input type="text" id="location_region" placeholder="Region">
+            </div>
+          </div>
+
+          <!-- checkbox -->
+          <div class="checkbox-group">
+            <input type="checkbox" id="terms" required aria-required="true">
+            <label for="terms" class="checkbox-label">I agree with the <a href="#terms" style="color:var(--primary-light)">terms and conditions</a></label>
+          </div>
+
+          <!-- buttons -->
+          <button type="submit" class="btn-primary">Create my account</button>
+          <button type="button" id="getAdditionalRecs" class="btn-secondary">Get Non-Personalized Recommendations</button>
+
+          <!-- feedback -->
+          <p id="message" role="alert" style="margin-top:-8px"></p>
+        </form>
+
+        <!-- recommendations list -->
+        <section style="margin-top:32px">
+          <div id="additionalRecs"></div>
+        </section>
+      </section>
     </div>
+  </main>
 
-    <div id="hotelFields" style="display:none;">
-      <input type="number" id="hotel_id" placeholder="Hotel ID" />
-      <input type="number" id="service" placeholder="Service" min="0" max="5" />
-      <input type="number" id="cleanliness" placeholder="Cleanliness" min="0" max="5" />
-      <input type="number" id="overall" placeholder="Overall" min="0" max="5" />
-      <input type="number" id="value" placeholder="Value" min="0" max="5" />
-      <input type="number" id="location_pref_score" placeholder="Location Pref Score" min="0" max="5" />
-      <input type="number" id="sleep_quality" placeholder="Sleep Quality" min="0" max="5" />
-      <input type="number" id="rooms" placeholder="Rooms" min="0" max="5" />
-      <input type="number" id="hotel_class" placeholder="Hotel Class" min="0" max="5" />
-      <input type="text" id="location_region" placeholder="Region" />
-    </div>
-
-    <button type="submit">Register</button>
-  </form>
-  <p id="message"></p>
+  <!-------- FOOTER -------->
+  <footer>
+    &copy; 2025 ProRegister. All rights reserved.
+  </footer>
 
   <script>
-    document.getElementById("mode").addEventListener("change", function () {
-      const userFields = document.getElementById("userFields");
-      const hotelFields = document.getElementById("hotelFields");
-      if (this.value === "user") {
-        userFields.style.display = "block";
-        hotelFields.style.display = "none";
-      } else {
-        userFields.style.display = "none";
-        hotelFields.style.display = "block";
-      }
+    /*===== Mobile nav toggle =====*/
+    const mobileToggle = document.querySelector('.mobile-toggle');
+    const navLinks = document.querySelector('.nav-links');
+    mobileToggle.addEventListener('click', () => {
+      const expanded = mobileToggle.getAttribute('aria-expanded') === 'true';
+      mobileToggle.setAttribute('aria-expanded', !expanded);
+      navLinks.style.display = navLinks.style.display === 'flex' ? 'none' : 'flex';
     });
 
-    document.getElementById("registerForm").addEventListener("submit", async (e) => {
+    /*===== Password show/hide =====*/
+    const togglePasswordBtn = document.querySelector('.toggle-password');
+    const passwordInput = document.getElementById('password');
+    togglePasswordBtn.addEventListener('click', () => {
+      const hidden = passwordInput.type === 'password';
+      passwordInput.type = hidden ? 'text' : 'password';
+      togglePasswordBtn.setAttribute('aria-pressed', hidden);
+      togglePasswordBtn.querySelector('span').textContent = hidden ? 'visibility_off' : 'visibility';
+    });
+
+    /*===== Mode switch (user / hotel) =====*/
+    const modeSelect = document.getElementById('mode');
+    const userFields = document.getElementById('userFields');
+    const hotelFields = document.getElementById('hotelFields');
+    modeSelect.addEventListener('change', () => {
+      const isUser = modeSelect.value === 'user';
+      userFields.style.display = isUser ? 'block' : 'none';
+      hotelFields.style.display = isUser ? 'none' : 'block';
+    });
+
+    /*===== Register form submit =====*/
+    const form = document.getElementById('registerForm');
+    form.addEventListener('submit', async e => {
       e.preventDefault();
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
 
-      const user_id = document.getElementById("userId").value;
-      const username = document.getElementById("username").value;
-      const password = document.getElementById("password").value;
-      const mode = document.getElementById("mode").value;
+      const payload = {
+        user_id: document.getElementById('userId').value,
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value,
+        mode: modeSelect.value
+      };
 
-      let payload = { user_id, username, password, mode };
-
-      if (mode === "user") {
+      if (payload.mode === 'user') {
         payload.user_mode_data = {
-          location_user: document.getElementById("locationUser").value,
-          num_cities: parseInt(document.getElementById("numCities").value),
-          num_reviews_profile: parseInt(document.getElementById("numReviews").value),
-          num_helpful_votes_user: parseInt(document.getElementById("numHelpfulVotes").value)
+          location_user: document.getElementById('locationUser').value,
+          num_cities: +document.getElementById('numCities').value || 0,
+          num_reviews_profile: +document.getElementById('numReviews').value || 0,
+          num_helpful_votes_user: +document.getElementById('numHelpfulVotes').value || 0
         };
       } else {
         payload.hotel_mode_data = {
-          offering_id: parseFloat(document.getElementById("hotel_id").value),
-          service: parseFloat(document.getElementById("service").value),
-          cleanliness: parseFloat(document.getElementById("cleanliness").value),
-          overall: parseFloat(document.getElementById("overall").value),
-          value: parseFloat(document.getElementById("value").value),
-          location_pref_score: parseFloat(document.getElementById("location_pref_score").value),
-          sleep_quality: parseFloat(document.getElementById("sleep_quality").value),
-          rooms: parseFloat(document.getElementById("rooms").value),
-          hotel_class: parseFloat(document.getElementById("hotel_class").value),
-          location_region: document.getElementById("location_region").value
+          offering_id: +document.getElementById('hotel_id').value || 0,
+          service: +document.getElementById('service').value || 0,
+          cleanliness: +document.getElementById('cleanliness').value || 0,
+          overall: +document.getElementById('overall').value || 0,
+          value: +document.getElementById('value').value || 0,
+          location_pref_score: +document.getElementById('location_pref_score').value || 0,
+          sleep_quality: +document.getElementById('sleep_quality').value || 0,
+          rooms: +document.getElementById('rooms').value || 0,
+          hotel_class: +document.getElementById('hotel_class').value || 0,
+          location_region: document.getElementById('location_region').value
         };
       }
 
-      const res = await fetch("http://127.0.0.1:8000/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('http://127.0.0.1:8000/register', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(payload)
       });
 
-      const messageEl = document.getElementById("message");
-      const data = await res.json();
-
+      const msg = document.getElementById('message');
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        messageEl.textContent = data.detail || "Registration failed";
-        messageEl.className = "error";
+        msg.textContent = data.detail || 'Registration failed.';
+        msg.className = 'error';
       } else {
-        localStorage.setItem("user_id", user_id);
-        window.location.href = "/login_page";
+        msg.textContent = 'Registered successfully! Redirecting…';
+        msg.className = 'success';
+        localStorage.setItem('user_id', payload.user_id);
+        setTimeout(() => (window.location.href = '/login_page'), 1200);
       }
     });
-  </script>
 
-  <section>
-    <button id="getAdditionalRecs">Get Non-Personalized Recommendations</button>
-    <div id="additionalRecs"></div>
+    /*===== Non-personalised recommendations =====*/
+    document.getElementById('getAdditionalRecs').addEventListener('click', async () => {
+      const container = document.getElementById('additionalRecs');
+      container.textContent = 'Loading…';
 
-    <script>
-      document.getElementById("getAdditionalRecs").addEventListener("click", async () => {
-        const res = await fetch("http://127.0.0.1:8000/recommendations/non_personalized?top_k=5");
-        const recs = await res.json();
+      const res = await fetch('http://127.0.0.1:8000/recommendations/non_personalized?top_k=5');
+      const recs = await res.json().catch(() => []);
 
-        const container = document.getElementById("additionalRecs");
-        if (!res.ok) {
-          container.textContent = "Failed to fetch recommendations.";
-          container.className = "error";
-          return;
-        }
+      if (!res.ok) {
+        container.textContent = 'Failed to fetch recommendations.';
+        return;
+      }
+      if (!recs.length) {
+        container.textContent = 'No recommendations found.';
+        return;
+      }
 
-        if (recs.length === 0) {
-          container.textContent = "No recommendations found.";
-          return;
-        }
-
-        container.innerHTML = "<h2 style='margin-bottom: 15px;'>Top Hotel Picks</h2>" +
-          recs.map(r => `
+      container.innerHTML =
+        '<h3 style="margin-bottom:12px">Top hotel picks</h3>' +
+        recs
+          .map(r => `
             <div class="rec-card">
-              <strong>🏨 Hotel ID:</strong> ${r.hotel_id}<br />
-              <strong>⭐ Score:</strong> ${r.score?.toFixed(2)}
+              <strong>🏨 Hotel ID:</strong> ${r.hotel_id}<br>
+              <strong>⭐ Score:</strong> ${r.score?.toFixed?.(2) ?? r.score}
             </div>
-          `).join('');
-      });
-    </script>
-  </section>
+          `)
+          .join('');
+    });
+  </script>
 </body>
 </html>

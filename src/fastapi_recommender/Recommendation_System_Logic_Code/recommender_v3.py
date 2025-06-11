@@ -40,73 +40,87 @@ user_features_collab = load_npz(f'{base_dir}/user_features_collab.npz')
 hotel_meta_df = pd.read_csv(f'{base_dir}/hotel_df.csv')
 hotel_meta_df.set_index('offering_id', inplace=True)
 
+# Al principi del mòdul
+global_min, global_max = np.inf, -np.inf
 
 # --- Recommend for a target user ---
 def hybrid_recommend(user_id, alpha=0.7, top_k=10):
-    """
-    Recomanació híbrida basada en col·laboratiu + contingut,
-    amb fallback a recomanació per clusters si no hi ha dades.
-    """
+    print(f"Called hybrid_recommend with user_id={user_id}")
 
+    # -------- 0) cold-start --------
     if user_id not in user_id_to_idx:
-        # Usuari nou, recomanació cold start
         return cold_start_recommendation_combined(user_id, top_k=top_k)
 
-    user_idx = user_id_to_idx[user_id]
+    user_idx     = user_id_to_idx[user_id]
     user_ratings = user_item_matrix[user_idx].toarray().flatten()
 
-    # Si usuari no té res, fem fallback directe a cluster
-    if np.sum(user_ratings) == 0:
-        user_latent = U_factors[user_idx].reshape(1, -1)
-        cluster_id = kmeans.predict(user_latent)[0]
+    # -------- 1) historial buit => cluster --------
+    if user_ratings.sum() == 0:
+        cluster_id    = kmeans.predict(U_factors[user_idx].reshape(1, -1))[0]
         cluster_hotels = cluster_top_hotels.get(str(cluster_id), [])
         return [(hid, 1.0) for hid in cluster_hotels[:top_k]]
 
-    # Recompte similituds usuari i recomanació col·laborativa
-    user_sim_scores = user_similarity[user_idx].toarray().flatten()
-    if np.sum(user_sim_scores) > 0:
-        collab_scores = (user_sim_scores @ user_item_matrix) / np.sum(user_sim_scores)
-    else:
-        collab_scores = np.zeros(user_item_matrix.shape[1])
+    # -------- 2) scores col·laboratius + contingut --------
+    user_sim      = user_similarity[user_idx].toarray().flatten()
+    collab_scores = (user_sim @ user_item_matrix) / user_sim.sum() if user_sim.sum() else np.zeros(user_item_matrix.shape[1])
+    item_scores   = user_ratings @ hotel_similarity
 
-    # Recompte similitud contingut hotel
-    item_sim_scores = user_ratings @ hotel_similarity
-
-    # Normalització
+    # normalitza cada vector per separat
     collab_scores = normalize(collab_scores.reshape(1, -1))[0]
-    item_sim_scores = normalize(item_sim_scores.reshape(1, -1))[0]
+    item_scores   = normalize(item_scores.reshape(1, -1))[0]
 
-    hybrid_scores = alpha * collab_scores + (1 - alpha) * item_sim_scores
+    # combinació i normalització global
+    hybrid_scores = alpha * collab_scores + (1 - alpha) * item_scores
+    hybrid_scores = normalize(hybrid_scores.reshape(1, -1))[0]
 
-    # Eliminem hotels ja valorats
-    rated_indices = np.where(user_ratings > 0)[0]
-    hybrid_scores[rated_indices] = 0
+    # -------- 3) elimina hotels ja valorats ABANS de min/max --------
+    rated_idx = np.where(user_ratings > 0)[0]
+    hybrid_scores[rated_idx] = 0
 
-    # Ordenem i agafem top k
-    top_indices = np.argsort(hybrid_scores)[::-1][:top_k]
-    recommended_hotel_ids = [idx_to_hotel_id[i] for i in top_indices]
-    recommended_scores = [hybrid_scores[i] for i in top_indices]
+    valid_mask   = hybrid_scores > 0
+    valid_scores = hybrid_scores[valid_mask]
 
-    # Si no hi ha recomanacions bones, fallback cluster
-    if np.all(hybrid_scores[top_indices] == 0):
-        user_latent = U_factors[user_idx].reshape(1, -1)
-        cluster_id = kmeans.predict(user_latent)[0]
+    if valid_scores.size == 0:                     # cap score positiu
+        print("User has no positive hybrid scores → fallback cluster")
+        cluster_id    = kmeans.predict(U_factors[user_idx].reshape(1, -1))[0]
         cluster_hotels = cluster_top_hotels.get(str(cluster_id), [])
         return [(hid, 1.0) for hid in cluster_hotels[:top_k]]
 
-    return list(zip(recommended_hotel_ids, recommended_scores))
+    min_s, max_s = valid_scores.min(), valid_scores.max()
+    print(f"Hybrid scores (after zeroing rated) → min={min_s:.4f}, max={max_s:.4f}")
 
+    # -------- 4) NORMALITZACIÓ 1-10 NOMÉS on valid_mask --------
+    norm_scores = np.zeros_like(hybrid_scores)
+    if max_s > min_s:
+        norm_scores[valid_mask] = 1 + 9 * (hybrid_scores[valid_mask] - min_s) / (max_s - min_s)
+    else:
+        norm_scores[valid_mask] = 10.0             # tots iguals
 
-def user_has_multi_reviews(user_id):
-    # Implementa la lògica real segons com guardis les reviews
-    # Exemple: 
-    return user_id in user_id_to_idx and np.sum(user_item_matrix[user_id_to_idx[user_id]].toarray()) > 0
+    # rated_idx ja estan a 0, es mantenen
 
-# --- Example usage ---
-user_id = "3199EEEDB7088BA85AAE3F7DB9BC224"  # replace with real user
+    # -------- 5) Top-k --------
+    top_idx   = np.argsort(norm_scores)[::-1][:top_k]
+    rec_ids   = [idx_to_hotel_id[i] for i in top_idx]
+    rec_scores = norm_scores[top_idx]
+
+    print(f"Normalized top scores: {rec_scores}")
+
+    return list(zip(rec_ids, rec_scores))
+
+"""# --- Example usage ---
+user_id = "EEE0674F7271A66FACABBB1EE20A164E"
 recommendations = hybrid_recommend(user_id, alpha=0.7, top_k=10)
 recommendations = apply_city_penalty(recommendations)
-print("Top recommendations:")
+
+print("Top recommendations (normalized 1–10):")
 for hotel_id, score in recommendations:
-    print(f"Hotel {hotel_id} — Score: {score:.4f}")
+    if hotel_id in hotel_meta_df.index:
+        info = hotel_meta_df.loc[hotel_id]
+        print(f"{info.get('name','N/A')} (ID {hotel_id}) — "
+              f"{info.get('hotel_class','N/A')}★, {info.get('locality','N/A')} "
+              f"— Score: {score:.2f}")
+    else:
+        print(f"Hotel {hotel_id} — Score: {score:.2f} (sense metadades)")"""
+
+
 
