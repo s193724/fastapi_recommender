@@ -6,7 +6,8 @@ import json
 import pandas as pd
 from collections import defaultdict
 
-base_dir = '/Users/filiporlikowski/Documents/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
+#base_dir = '/Users/filiporlikowski/Documents/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
+base_dir = '/Users/oliviapc/Documents/GitHub/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
 
 # --- Load persistent data --- /src/fastapi_recommender/Recommendation_System_Logic_Code/
 user_features_sparse = load_npz(f'{base_dir}/user_features_sparse.npz')
@@ -103,8 +104,12 @@ def cold_start_recommendation(user_id, top_k=10):
         helpful = float(input("How many helpful votes have you received? "))
 
         # Step 2: Build cold user vector
-        numeric_vector = scaler.transform([[helpful, cities, reviews]])
+        #()numeric_vector = scaler.transform([[helpful, cities, reviews]])
+        #()location_vector = vectorizer_location.transform([location])
+        df_numeric = pd.DataFrame([[helpful, cities, reviews]], columns=scaler.feature_names_in_)
+        numeric_vector = scaler.transform(df_numeric)
         location_vector = vectorizer_location.transform([location])
+
         cold_user_vector = hstack([csr_matrix(numeric_vector), location_vector])  # shape (1, 503)
 
         # Step 3: Compute similarity to existing users
@@ -191,11 +196,21 @@ def cold_start_recommendation_combined(
 
     try:
         if mode == "user":
-            if None in (helpful, cities, reviews, location):
-                raise ValueError("Missing user profile fields for user-mode cold start.")
+            helpful = 0.0 if helpful is None else helpful
+            cities = 0.0 if cities is None else cities
+            reviews = 0.0 if reviews is None else reviews
+            location = location if location is not None else "Unknown"
 
-            numeric_vector = scaler.transform([[helpful, cities, reviews]])
+            # Protegeix contra ubicacions desconegudes
+            if location not in vectorizer_location.vocabulary_:
+                location = "Unknown"
+                
+            #()numeric_vector = scaler.transform([[helpful, cities, reviews]])
+            #()location_vector = vectorizer_location.transform([location])
+            df_numeric = pd.DataFrame([[helpful, cities, reviews]], columns=scaler.feature_names_in_)
+            numeric_vector = scaler.transform(df_numeric)
             location_vector = vectorizer_location.transform([location])
+
             cold_user_vector = hstack([csr_matrix(numeric_vector), location_vector])
 
             similarities = cosine_similarity(cold_user_vector, user_features_sparse)[0]
@@ -220,50 +235,57 @@ def cold_start_recommendation_combined(
             return top_hotels
 
         elif mode == "hotel":
-            print(offering_id)
-            if None in (service, cleanliness, overall, value, location_pref_score,
-                        sleep_quality, rooms, hotel_class, location_region):
-                raise ValueError("Missing hotel preference fields for hotel-mode cold start.")
+            # 1. Validació tova (acepta np.nan i None)
+            def _safe(x):    # helper
+                return 0 if (x is None or (isinstance(x, float) and np.isnan(x))) else x
 
-            hotel_features_sparse = load_npz(f"{base_dir}/hotel_features.npz")
+            service, cleanliness, overall, value = map(_safe, (service, cleanliness, overall, value))
+            location_pref_score, sleep_quality, rooms = map(_safe, (location_pref_score, sleep_quality, rooms))
+            hotel_class = _safe(hotel_class)
+
+            # 2. One-hot encoder i crea vector usuari
             ohe = joblib.load(f'{base_dir}/hotel_region_ohe.pkl')
-
             if location_region not in ohe.categories_[0]:
                 location_region = 'Unknown' if 'Unknown' in ohe.categories_[0] else ohe.categories_[0][0]
-
-            location_encoded = ohe.transform([[location_region]]).toarray().flatten()
+            #location_encoded = ohe.transform([[location_region]]).A1
+            #()location_encoded = ohe.transform([[location_region]]).toarray().ravel()
+            df_region = pd.DataFrame([location_region], columns=ohe.feature_names_in_)
+            location_encoded = ohe.transform(df_region).toarray().ravel()
 
             user_categories = [service, cleanliness, overall, value,
-                               location_pref_score, sleep_quality, rooms]
+                            location_pref_score, sleep_quality, rooms]
             avg_score = np.mean(user_categories)
-            median_hotel_class = 3.0
-            weighted_score_pref = avg_score * median_hotel_class * 10
+            weighted_score_pref = avg_score * 3.0 * 10      # 3.0 = classe mitjana
 
-            user_pref_vector = np.hstack((user_categories, [weighted_score_pref], location_encoded, hotel_class))
-            cold_user_vector = csr_matrix(user_pref_vector).reshape(1, -1)
+            user_pref_vector = np.hstack((user_categories, [weighted_score_pref], location_encoded, [hotel_class]))
+            cold_user_vector = csr_matrix(user_pref_vector)
 
-            hotel_class_idx = 25
+            # 3. Índex dinàmic de columnes
             region_start_idx = 8
+            hotel_class_idx = region_start_idx + len(ohe.categories_[0])
 
-            hotel_class_col = hotel_features_sparse[:, hotel_class_idx].toarray().flatten()
+            #hotel_class_col = hotel_features_sparse[:, hotel_class_idx].A1
+            hotel_class_col = hotel_features_sparse[:, hotel_class_idx].toarray().ravel()
+
+            #region_cols = hotel_features_sparse[:, region_start_idx:].A
             region_cols = hotel_features_sparse[:, region_start_idx:].toarray()
 
-            hotel_class_mask = (hotel_class_col == hotel_class)
-            region_idx = list(ohe.categories_[0]).index(location_region)
-            region_mask = (region_cols[:, region_idx] == 1)
 
+            hotel_class_mask = (hotel_class_col == hotel_class)
+            region_mask = (region_cols[:, list(ohe.categories_[0]).index(location_region)] == 1)
             combined_mask = region_mask & hotel_class_mask
             hotel_features_filtered = hotel_features_sparse[combined_mask]
 
             if hotel_features_filtered.shape[0] == 0:
-                return []
+                combined_mask = region_mask        # relaxem una mica
+                hotel_features_filtered = hotel_features_sparse[combined_mask]
 
-            similarities = cosine_similarity(cold_user_vector, hotel_features_filtered)[0]
-            top_indices_filtered = np.argsort(similarities)[::-1][:top_k]
-            original_indices = np.where(combined_mask)[0]
-            top_indices_original = original_indices[top_indices_filtered]
+            similarities = cosine_similarity(cold_user_vector, hotel_features_filtered).ravel()
+            top_idx_filtered = np.argsort(similarities)[::-1][:top_k]
+            original_idx = np.where(combined_mask)[0][top_idx_filtered]
 
-            top_hotels = [(idx_to_hotel_id[i], similarities[j]) for j, i in enumerate(top_indices_original)]
+            top_hotels = [(idx_to_hotel_id[i], similarities[j])      # ús correcte de j
+                        for j, i in zip(top_idx_filtered, original_idx)]
             return top_hotels
 
         else:
@@ -321,7 +343,8 @@ def get_non_personalized_recommendations(top_k: int = 10, diversify: bool = Fals
     # Diversify by boosting hotels similar to top ones
     if diversify:
         top_indices = np.argsort(combined_scores)[::-1][:20]
-        sim_scores = hotel_similarity[top_indices].mean(axis=0).A1
+        #sim_scores = hotel_similarity[top_indices].mean(axis=0).A1
+        sim_scores = hotel_similarity[top_indices].mean(axis=0).toarray().ravel()
         combined_scores += 0.1 * sim_scores  # Add slight boost for similar hotels
 
     # Final Top-K selection

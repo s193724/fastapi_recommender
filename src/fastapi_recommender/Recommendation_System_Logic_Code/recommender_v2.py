@@ -8,7 +8,9 @@ from src.fastapi_recommender.Recommendation_System_Logic_Code.recommender_cold_s
     cold_start_recommendation_combined, apply_city_penalty,get_non_personalized_recommendations
 )
 
-base_dir = '/Users/filiporlikowski/Documents/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
+#base_dir = '/Users/filiporlikowski/Documents/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
+base_dir = '/Users/oliviapc/Documents/GitHub/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
+
 # --- Load data ---
 user_item_matrix = load_npz(f'{base_dir}/user_hotel_matrix.npz')
 user_similarity = load_npz(f'{base_dir}/user_similarity_collab.npz')
