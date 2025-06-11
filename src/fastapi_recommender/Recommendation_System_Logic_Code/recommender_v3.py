@@ -107,7 +107,7 @@ def hybrid_recommend(user_id, alpha=0.7, top_k=10):
 
     return list(zip(rec_ids, rec_scores))
 
-"""# --- Example usage ---
+# --- Example usage ---
 user_id = "EEE0674F7271A66FACABBB1EE20A164E"
 recommendations = hybrid_recommend(user_id, alpha=0.7, top_k=10)
 recommendations = apply_city_penalty(recommendations)
@@ -120,7 +120,7 @@ for hotel_id, score in recommendations:
               f"{info.get('hotel_class','N/A')}★, {info.get('locality','N/A')} "
               f"— Score: {score:.2f}")
     else:
-        print(f"Hotel {hotel_id} — Score: {score:.2f} (sense metadades)")"""
+        print(f"Hotel {hotel_id} — Score: {score:.2f} (sense metadades)")
 
 
 

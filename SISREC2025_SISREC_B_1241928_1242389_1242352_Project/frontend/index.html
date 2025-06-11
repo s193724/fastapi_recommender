@@ -1,0 +1,242 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hotel Recommendations</title>
+  <style>
+    /* Existing styles plus updates */
+
+    .success {
+      color: green;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .error {
+      color: red;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      max-width: 400px;
+      margin: 0 auto 20px auto;
+    }
+
+    input {
+      padding: 10px;
+      margin-bottom: 10px;
+      font-size: 1em;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      padding: 10px;
+      font-size: 1em;
+      border-radius: 5px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .container {
+      margin-bottom: 40px;
+    }
+
+  </style>
+  <script>
+    async function loadRecommendations(userId) {
+      try {
+        const url = `http://127.0.0.1:8000/recommendations/?user_id=${encodeURIComponent(userId)}`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Recommendations not found for user');
+
+        const data = await response.json();
+        const recommendations = data.recommendations || [];
+
+        const list = document.getElementById("recommendations");
+        list.innerHTML = "";
+
+        if (recommendations.length === 0) {
+          list.innerHTML = "<li>No recommendations available.</li>";
+        } else {
+          recommendations.forEach((item) => {
+            const li = document.createElement("li");
+            li.innerHTML = `
+              <strong>🏨 Hotel ID: ${item.hotel_id}</strong>
+              <div class="score">⭐ Score: ${item.score}</div>
+            `;
+            list.appendChild(li);
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching recommendations:", error);
+        document.getElementById("error").textContent = "⚠️ Failed to load recommendations.";
+      }
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+
+      const userId = document.getElementById("loginUserId").value.trim();
+      const password = document.getElementById("loginPassword").value.trim();
+      const messageEl = document.getElementById("loginMessage");
+      messageEl.textContent = "";
+      messageEl.className = "";
+
+      if (!userId || !password) {
+        messageEl.textContent = "Please enter both User ID and Password.";
+        messageEl.className = "error";
+        return;
+      }
+
+      try {
+        const response = await fetch("http://127.0.0.1:8000/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: userId, password: password }),
+        });
+
+        if (!response.ok) {
+          if(response.status === 401) {
+            messageEl.textContent = "Invalid User ID or password.";
+            messageEl.className = "error";
+            return;
+          }
+          throw new Error(`Server error: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+
+        // Your backend sends {"message": "Login successful"}, so check for that
+        if (result.message && result.message.toLowerCase().includes("successful")) {
+          messageEl.textContent = "Login successful! Loading recommendations...";
+          messageEl.className = "success";
+          loadRecommendations(userId);
+        } else {
+          messageEl.textContent = "Invalid User ID or password.";
+          messageEl.className = "error";
+        }
+      } catch (error) {
+        messageEl.textContent = "Network error: " + error.message;
+        messageEl.className = "error";
+      }
+    }
+
+    async function handleRegister(event) {
+      event.preventDefault();
+
+      const userId = document.getElementById("regUserId").value.trim();
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("regPassword").value.trim();
+      const locationUser = document.getElementById("locationUser").value.trim();
+      const numCities = parseInt(document.getElementById("numCities").value);
+      const numReviews = parseInt(document.getElementById("numReviews").value);
+      const numHelpfulVotes = parseInt(document.getElementById("numHelpfulVotes").value);
+      const messageEl = document.getElementById("registerMessage");
+      messageEl.textContent = "";
+      messageEl.className = "";
+
+      if (!userId || !username || !password || !locationUser ||
+          isNaN(numCities) || isNaN(numReviews) || isNaN(numHelpfulVotes)) {
+        messageEl.textContent = "Please fill out all fields correctly.";
+        messageEl.className = "error";
+        return;
+      }
+
+      try {
+        const response = await fetch("http://127.0.0.1:8000/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: userId,
+            username: username,
+            password: password,
+            location_user: locationUser,
+            num_cities: numCities,
+            num_reviews_profile: numReviews,
+            num_helpful_votes_user: numHelpfulVotes
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          messageEl.textContent = errorData.detail || "Registration failed.";
+          messageEl.className = "error";
+          return;
+        }
+
+        const data = await response.json();
+        messageEl.textContent = "Registration successful! Recommendations loaded below.";
+        messageEl.className = "success";
+
+        // Show recommendations returned after registration
+        const list = document.getElementById("recommendations");
+        list.innerHTML = "";
+
+        if (data.recommendations.length === 0) {
+          list.innerHTML = "<li>No recommendations available.</li>";
+        } else {
+          data.recommendations.forEach((item) => {
+            const li = document.createElement("li");
+            li.innerHTML = `
+              <strong>🏨 Hotel ID: ${item.hotel_id}</strong>
+              <div class="score">⭐ Score: ${item.score}</div>
+            `;
+            list.appendChild(li);
+          });
+        }
+      } catch (error) {
+        messageEl.textContent = "Network error: " + error.message;
+        messageEl.className = "error";
+      }
+    }
+
+    window.onload = () => {
+      document.getElementById("loginForm").addEventListener("submit", handleLogin);
+      document.getElementById("registerForm").addEventListener("submit", handleRegister);
+    };
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h1>User Registration</h1>
+    <form id="registerForm">
+      <input type="text" id="regUserId" placeholder="User ID" required />
+      <input type="text" id="username" placeholder="Username" required />
+      <input type="password" id="regPassword" placeholder="Password" required />
+      <input type="text" id="locationUser" placeholder="Location" required />
+      <input type="number" id="numCities" placeholder="Number of Cities" required min="0" />
+      <input type="number" id="numReviews" placeholder="Number of Reviews" required min="0" />
+      <input type="number" id="numHelpfulVotes" placeholder="Number of Helpful Votes" required min="0" />
+      <button type="submit">Register</button>
+    </form>
+    <p id="registerMessage"></p>
+  </div>
+
+  <div class="container">
+    <h1>User Login</h1>
+    <form id="loginForm">
+      <input type="text" id="loginUserId" placeholder="User ID" required />
+      <input type="password" id="loginPassword" placeholder="Password" required />
+      <button type="submit">Login</button>
+    </form>
+    <p id="loginMessage"></p>
+  </div>
+
+  <div class="container">
+    <h1>Top Hotel Recommendations</h1>
+    <ul id="recommendations"></ul>
+    <div id="error" class="error"></div>
+  </div>
+</body>
+</html> -->

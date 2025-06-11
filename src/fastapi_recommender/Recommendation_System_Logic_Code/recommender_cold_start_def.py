@@ -357,8 +357,8 @@ def get_non_personalized_recommendations(top_k: int = 10, diversify: bool = Fals
             recommendations.append((hotel_id, combined_scores[idx]))
 
     return recommendations
-"""
-def print_recommendations_with_features(recommendations, hotel_meta_df):
+
+"""def print_recommendations_with_features(recommendations, hotel_meta_df):
     for hotel_id, score in recommendations:
         if hotel_id in hotel_meta_df.index:
             features = hotel_meta_df.loc[hotel_id].to_dict()
@@ -368,5 +368,4 @@ def print_recommendations_with_features(recommendations, hotel_meta_df):
                 print(f"  {k}: {v}")
             print("-" * 40)
         else:
-            print(f"Hotel ID: {hotel_id} not found in metadata.")
-"""
+            print(f"Hotel ID: {hotel_id} not found in metadata.")"""

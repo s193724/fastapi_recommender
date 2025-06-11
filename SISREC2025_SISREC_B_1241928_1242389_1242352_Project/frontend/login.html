@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProRegister – Login</title>
+
+  <!-- Google Fonts & Material Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+  <style>
+    /* ===== Reset & base ===== */
+    *,*::before,*::after{box-sizing:border-box}
+    body{margin:0;font-family:'Inter',sans-serif;background:#0a0f2a;color:#e0e6f1;min-height:100vh;display:flex;flex-direction:column}
+
+    /* ===== Color variables ===== */
+    :root{
+      --primary:#2e80ff;
+      --primary-light:#5596ff;
+      --bg-panel-left:#121c4b;
+      --bg-panel-right:#181f38;
+      --input-bg:rgba(255,255,255,0.07);
+      --input-border:rgba(255,255,255,0.12);
+      --input-placeholder:rgba(255,255,255,0.55);
+      --input-focus-border:#5596ff;
+      --btn-bg:var(--primary);
+      --btn-hover-bg:var(--primary-light);
+      --text-muted:rgba(224,230,241,0.7);
+      --shadow-glass:rgba(40,73,148,0.5)
+    }
+
+    /* ===== Header & nav ===== */
+    header,footer{background:#121c4b;color:#fff;padding:1rem 2rem;text-align:center}
+    header{position:sticky;top:0;z-index:99;box-shadow:0 2px 6px rgba(0,0,0,.6)}
+    nav{max-width:1080px;margin:auto;display:flex;justify-content:space-between;align-items:center}
+    nav .logo{font-weight:700;font-size:1.5rem;color:var(--primary-light)}
+    nav .nav-links{display:flex;gap:2rem}
+    nav .nav-links a{color:#fff;text-decoration:none;font-weight:600;font-size:1rem;transition:color .3s}
+    nav .nav-links a:hover{color:var(--primary-light)}
+    .mobile-toggle{display:none;background:none;border:none;color:#fff;font-size:1.8rem}
+
+    /* ===== Container ===== */
+    .login-container{max-width:720px;margin:3rem auto;display:grid;grid-template-columns:1fr 1fr;background:#0f163d;border-radius:16px;overflow:hidden;box-shadow:0 16px 32px var(--shadow-glass);min-height:480px}
+    .welcome-panel{background:var(--bg-panel-left);padding:48px 40px;display:flex;flex-direction:column;justify-content:center;position:relative}
+    .welcome-panel h1{font-size:2.4rem;font-weight:700;margin:0 0 1rem}
+    .welcome-panel p{color:var(--text-muted);margin:0;max-width:300px}
+    .welcome-bg-img{position:absolute;opacity:.1;top:16px;left:16px;width:200px;height:200px;background-image:url('https://placehold.co/200x200/121c4b/2e80ff?text=+');background-size:cover;border-radius:50%;mix-blend-mode:screen}
+
+    .form-panel{background:var(--bg-panel-right);padding:48px 40px;display:flex;flex-direction:column;justify-content:center}
+    .form-panel h2{font-size:1.8rem;font-weight:700;margin:0 0 32px}
+
+    /* ===== Inputs ===== */
+    form{display:flex;flex-direction:column;gap:22px}
+    .input-group{position:relative;display:flex;align-items:center}
+    .input-icon{position:absolute;left:12px;color:var(--input-placeholder);font-size:20px}
+    input{width:100%;padding:14px 16px 14px 40px;background:var(--input-bg);border:1.5px solid var(--input-border);border-radius:10px;color:#fff;font-size:1rem}
+    input::placeholder{color:var(--input-placeholder)}
+    input:focus{border-color:var(--input-focus-border);background:rgba(255,255,255,.12);outline:none;box-shadow:0 0 8px var(--input-focus-border)}
+
+    button{padding:14px 0;font-weight:700;font-size:1rem;border-radius:12px;border:none;cursor:pointer;transition:background-color .3s}
+    .btn-primary{background:var(--btn-bg);color:#fff;box-shadow:0 6px 12px rgba(46,128,255,.48)}
+    .btn-primary:hover{background:var(--btn-hover-bg);box-shadow:0 10px 20px rgba(85,150,255,.68)}
+
+    .error{color:#ff6b6b;font-size:.95rem}
+    .success{color:#32d296;font-size:.95rem}
+
+    /* ===== Responsive ===== */
+    @media(max-width:767px){
+      nav .nav-links{display:none}.mobile-toggle{display:block}
+      .login-container{grid-template-columns:1fr;margin:2rem 1rem}
+      .welcome-panel{display:none}
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <nav>
+      <div class="logo">TOPhotels</div>
+      <button class="mobile-toggle" aria-label="Toggle menu" aria-expanded="false">&#9776;</button>
+      <div class="nav-links"role="navigation">
+        <a href="/register_page">Register</a>
+        <a href="/login_page">Login</a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Main -->
+  <main>
+    <div class="login-container">
+      <!-- Left illustration -->
+      <section class="welcome-panel" aria-hidden="true">
+        <div class="welcome-bg-img"></div>
+        <h1>Welcome back!</h1>
+        <p>Log in to continue discovering<br/>your next favourite hotel.</p>
+      </section>
+
+      <!-- Right form -->
+      <section class="form-panel">
+        <h2>Login to your account</h2>
+        <form id="loginForm" novalidate>
+          <div class="input-group">
+            <span class="material-icons input-icon">badge</span>
+            <input type="text" id="userId" placeholder="User ID" required>
+          </div>
+          <div class="input-group">
+            <span class="material-icons input-icon">lock</span>
+            <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn-primary">Login</button>
+          <p id="message" role="alert"></p>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    &copy; 2025 TOPhotels. All rights reserved.
+  </footer>
+
+  <!-- Scripts -->
+  <script>
+    /*===== Mobile nav toggle =====*/
+    const navBtn = document.querySelector('.mobile-toggle');
+    const links = document.querySelector('.nav-links');
+    navBtn?.addEventListener('click', () => {
+      const exp = navBtn.getAttribute('aria-expanded') === 'true';
+      navBtn.setAttribute('aria-expanded', !exp);
+      links.style.display = links.style.display === 'flex' ? 'none' : 'flex';
+    });
+
+    /*===== Login submit =====*/
+    document.getElementById('loginForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const user_id = document.getElementById('userId').value.trim();
+      const password = document.getElementById('password').value;
+
+      const res = await fetch('http://127.0.0.1:8000/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id, password})
+      });
+
+      const msg = document.getElementById('message');
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        msg.textContent = data.detail || 'Login failed';
+        msg.className = 'error';
+      } else {
+        msg.textContent = 'Login successful! Redirecting…';
+        msg.className = 'success';
+        localStorage.setItem('user_id', data.user_id);
+        localStorage.setItem('token', data.access_token);
+        setTimeout(() => (window.location.href = '/recommendations_page'), 800);
+      }
+    });
+  </script>
+</body>
+</html>
+<!-- This HTML file is a simple login page for the ProRegister application.
+     It includes a header, a login form, and a footer. The form allows users to
+     enter their User ID and Password, and it handles the login process with
+     basic validation and feedback. The design is responsive and uses modern CSS. -->
