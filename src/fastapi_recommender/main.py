@@ -356,7 +356,7 @@ def root():
     #return FileResponse("/Users/oliviapc/Documents/GitHub/fastapi_recommender/frontend/register.html")
 
     # Opció 2: Redirigeix a la ruta /register_page (si vols que la URL canviï)
-    return RedirectResponse(url="/register_page")
+    return RedirectResponse(url="/login_page")
 
 # Route to serve the register page
 @app.get("/register_page", response_class=FileResponse)
