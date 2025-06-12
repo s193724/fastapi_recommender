@@ -91,9 +91,9 @@
         recommendations.forEach(item => {
           const li = document.createElement("li");
           li.innerHTML = `
-            <strong>🏨 ${item.name || "Hotel ID: " + item.hotel_id}</strong> <br/>
+            <strong>🏨 ${item.hotel_name || ("Hotel ID: " + item.hotel_id)}</strong> <br/>
             Class: ${item.hotel_class || "N/A"} <br/>
-            Location: ${item.locality || "N/A"} <br/>
+            Location: ${item.location || "N/A"} <br/>
             ⭐ Score: ${item.score}
           `;
           list.appendChild(li);

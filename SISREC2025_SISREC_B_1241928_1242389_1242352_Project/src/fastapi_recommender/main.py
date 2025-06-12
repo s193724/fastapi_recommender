@@ -86,8 +86,9 @@ async def lifespan(app: FastAPI):
     global user_id_to_idx, idx_to_user_id, hotel_id_to_idx, idx_to_hotel_id
     global hotel_meta_df, hotel_meta_dict
 
-    base_dir = '/Users/oliviapc/Documents/GitHub/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
-
+    #base_dir = '/Users/oliviapc/Documents/GitHub/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
+    base_dir = '/Users/filiporlikowski/Documents/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
+    
     print("Loading matrices...")
     user_item_matrix = load_npz(f'{base_dir}/user_hotel_matrix.npz')
     user_similarity = load_npz(f'{base_dir}/user_similarity_collab.npz')
@@ -117,8 +118,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-#GENERATED_PASSWORDS_PATH = "/Users/filiporlikowski/Documents/fastapi_recommender/generated_passwords.csv"
-GENERATED_PASSWORDS_PATH = "/Users/oliviapc/Documents/GitHub/fastapi_recommender/generated_passwords.csv"
+GENERATED_PASSWORDS_PATH = "/Users/filiporlikowski/Documents/fastapi_recommender/generated_passwords.csv"
+#GENERATED_PASSWORDS_PATH = "/Users/oliviapc/Documents/GitHub/fastapi_recommender/generated_passwords.csv"
 
 #from models import User as UserModel, UserModeProfile, HotelModeProfile
 #from fastapi import HTTPException, Depends
@@ -388,9 +389,10 @@ def non_personalized_recommendations(top_k: int = 10):
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, RedirectResponse
 
-# Mount the folder containing your frontend files
-app.mount("/static", StaticFiles(directory="/Users/oliviapc/Documents/GitHub/fastapi_recommender/frontend"), name="static")
+base_dir_2 = "/Users/filiporlikowski/Documents/fastapi_recommender"
+#base_dir_2 = "/Users/oliviapc/Documents/GitHub/fastapi_recommender"
 
+app.mount("/static", StaticFiles(directory=f"{base_dir_2}/frontend"), name="static")
 @app.get("/")
 async def root():
     return RedirectResponse(url="/login_page")
@@ -403,14 +405,14 @@ async def favicon():
 @app.get("/register_page", response_class=FileResponse)
 def serve_register_page():
     #return FileResponse("/Users/filiporlikowski/Documents/fastapi_recommender/frontend/register.html")
-    return FileResponse("/Users/oliviapc/Documents/GitHub/fastapi_recommender/frontend/register.html")
+    return FileResponse(f"{base_dir_2}/frontend/register.html")
 # Optional: Route for login.html and recommendations.html if needed
 @app.get("/login_page", response_class=FileResponse)
 def serve_login_page():
     #return FileResponse("/Users/filiporlikowski/Documents/fastapi_recommender/frontend/login.html")
-    return FileResponse("/Users/oliviapc/Documents/GitHub/fastapi_recommender/frontend/login.html")
+    return FileResponse(f"{base_dir_2}/frontend/login.html")
 
 @app.get("/recommendations_page", response_class=FileResponse)
 def serve_recommendations_page():
     #return FileResponse("/Users/filiporlikowski/Documents/fastapi_recommender/frontend/recommendations.html")
-    return FileResponse("/Users/oliviapc/Documents/GitHub/fastapi_recommender/frontend/recommendations.html")
+    return FileResponse(f"{base_dir_2}/frontend/recommendations.html")

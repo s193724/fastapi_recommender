@@ -6,8 +6,8 @@ import json
 import pandas as pd
 from collections import defaultdict
 
-#base_dir = '/Users/filiporlikowski/Documents/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
-base_dir = '/Users/oliviapc/Documents/GitHub/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
+base_dir = '/Users/filiporlikowski/Documents/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
+#base_dir = '/Users/oliviapc/Documents/GitHub/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
 
 # --- Load persistent data --- /src/fastapi_recommender/Recommendation_System_Logic_Code/
 user_features_sparse = load_npz(f'{base_dir}/user_features_sparse.npz')

@@ -10,8 +10,8 @@ from src.fastapi_recommender.Recommendation_System_Logic_Code.recommender_cold_s
 #from fastapi_recommender.Recommendation_System_Logic_Code.no_multi_criteria_recommender import recommend
 
 
-#base_dir = '/Users/filiporlikowski/Documents/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
-base_dir = '/Users/oliviapc/Documents/GitHub/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
+base_dir = '/Users/filiporlikowski/Documents/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
+#base_dir = '/Users/oliviapc/Documents/GitHub/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
 
 # --- Load data ---
 user_item_matrix = load_npz(f'{base_dir}/user_hotel_matrix.npz')
@@ -111,6 +111,9 @@ def hybrid_recommend(user_id, alpha=0.7, top_k=10):
 user_id = "EEE0674F7271A66FACABBB1EE20A164E"
 recommendations = hybrid_recommend(user_id, alpha=0.7, top_k=10)
 recommendations = apply_city_penalty(recommendations)
+print(hotel_meta_df.index.dtype)
+print([type(hid) for hid, _ in recommendations])
+
 
 print("Top recommendations (normalized 1–10):")
 for hotel_id, score in recommendations:

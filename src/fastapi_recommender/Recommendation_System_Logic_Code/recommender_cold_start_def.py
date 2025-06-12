@@ -6,8 +6,8 @@ import json
 import pandas as pd
 from collections import defaultdict
 
-#base_dir = '/Users/filiporlikowski/Documents/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
-base_dir = '/Users/oliviapc/Documents/GitHub/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
+base_dir = '/Users/filiporlikowski/Documents/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
+#base_dir = '/Users/oliviapc/Documents/GitHub/fastapi_recommender/src/fastapi_recommender/Recommendation_System_Logic_Code'
 
 # --- Load persistent data --- /src/fastapi_recommender/Recommendation_System_Logic_Code/
 user_features_sparse = load_npz(f'{base_dir}/user_features_sparse.npz')
@@ -216,6 +216,7 @@ def cold_start_recommendation_combined(
             similarities = cosine_similarity(cold_user_vector, user_features_sparse)[0]
             scores = similarities @ user_item_matrix
             scores = np.array(scores).flatten()
+            scores = scores/100
             top_indices = np.argsort(scores)[::-1][:top_k]
             top_hotels = [(idx_to_hotel_id[i], scores[i]) for i in top_indices]
 
